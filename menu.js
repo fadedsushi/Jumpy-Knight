@@ -4,9 +4,10 @@
 scene("mainMenu", () => {
   destroyAll();
 
-  // Refresh BGM in case volume or toggle changed
-  stop("music");
-  updateMusic();
+  // Only update music if it's not already playing or if it's disabled
+  if (!window.musicPlaying && window.audioSettings.musicEnabled) {
+    updateMusic();
+  }
 
   // Background + overlay
   add([
@@ -160,13 +161,19 @@ scene("settings", () => {
   mm.onClick(() => {
     window.audioSettings.musicVolume = Math.max(0, window.audioSettings.musicVolume - 0.1);
     mv.text = `${Math.round(window.audioSettings.musicVolume * 100)}%`;
-    updateMusic();
+    // Update music with new volume if it's playing
+    if (window.musicPlaying && window.audioSettings.musicEnabled) {
+      updateMusic(); // Restart with new volume
+    }
     playSfx("click");
   });
   mp.onClick(() => {
     window.audioSettings.musicVolume = Math.min(1, window.audioSettings.musicVolume + 0.1);
     mv.text = `${Math.round(window.audioSettings.musicVolume * 100)}%`;
-    updateMusic();
+    // Update music with new volume if it's playing
+    if (window.musicPlaying && window.audioSettings.musicEnabled) {
+      updateMusic(); // Restart with new volume
+    }
     playSfx("click");
   });
 
@@ -222,7 +229,17 @@ scene("settings", () => {
     window.audioSettings.musicEnabled = !window.audioSettings.musicEnabled;
     mt.text = window.audioSettings.musicEnabled ? "Music: ON" : "Music: OFF";
     mt.color = window.audioSettings.musicEnabled ? rgb(0,255,100) : rgb(255,100,100);
-    updateMusic();
+
+    // Update music based on new setting
+    if (window.audioSettings.musicEnabled) {
+      if (!window.musicPlaying) {
+        updateMusic();
+      }
+    } else if (window.musicPlaying) {
+      stop("music");
+      window.musicPlaying = false;
+    }
+
     playSfx("click");
   });
 
