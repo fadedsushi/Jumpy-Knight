@@ -2,124 +2,126 @@
 /* -------------------------------------------------------------------------- */
 
 scene("game", () => {
-	setGravity(1400); // Increased gravity for better jump feel
-	
-	/* --- reset audio --- */
-	stop("music"); // Force stop any music
-	updateMusic(); // Start fresh instance
-	
-	/* --- constants --- */
-	const ENEMY_SPEED      = 250;
-	const FIREBALL_COOLDOWN = 3.0;
-	
-	const PLAYER_X = 80;
-	const PLAYER_Y = height() - 96;
-	
-	/* --- global flags --- */
-	window.gamePaused  = false;
-	window.score       = 0;
-	
-	/* --- backdrop + floor --- */
-	add([sprite("background",{width:width(),height:height()}), pos(0,0)]);
-	add([rect(width(),48), pos(0,height()-48), area(), body({isStatic:true}), color(112,128,144)]);
-	
-	/* --- player --- */
-	const player = add([
-	sprite("knight-idle"),
-	pos(PLAYER_X, PLAYER_Y),
-	scale(2),
-	area(),
-	body(),
-	"player",
-	{ health:3, jumps:0, triple:0, jumpCD:0, atkCD:0 }
-	]);
-	player.play("idle");
-	
-	/* --- UI --- */
-	const scoreTx   = add([text("Score: 0",{font:"sink",size:40}), pos(10,10)]);
-	const tripleTx  = add([text("Triple Jumps: 0",{font:"sink",size:20}), pos(10,90)]);
-	const healthTx  = add([text("Health: 3",{font:"sink",size:20}), pos(10,130)]);
-	
-	/* fireball CD bar */
-	add([rect(200,20), pos(10,170), color(90,90,90), outline(2)]);
-	const fbBar  = add([rect(200,20), pos(10,170), color(255,120,50)]);
-	const fbText = add([text("Fireball: Ready",{font:"sink",size:16}), pos(220,170)]);
-	let fireballCD = 0;
-	
-	/* --- helpers --- */
-	const updTriple = () => tripleTx.text=`Triple Jumps: ${player.triple}`;
-	const updHealth = () => healthTx.text =`Health: ${player.health}`;
-	
-	const toast = msg=> add([
-	text(msg,{font:"sink",size:24}),
-	pos(player.pos.x, player.pos.y-50),
-	color(255,255,0), origin("center"),
-	lifespan(1.5), move(UP,80)
-	]);
-	
-	/* --- jumping (increased heights) --- */
-	function tryJump(){
-	if (gamePaused || player.jumpCD>0) return;
-	
-	if (player.isGrounded()){
-	player.jump(600); // Increased from 420
-	player.jumps=1; 
-	playSfx("jump");
-	} else if (player.jumps===1){
-	player.jump(500); // Increased from 340
-	player.jumps=2; 
-	playSfx("jump");
-	} else if (player.triple>0){
-	player.triple--; 
-	updTriple(); 
-	player.jump(700); // Increased from 500
-	playSfx("jump"); 
-	toast("Triple Jump!");
-	playSfx("powerup"); // Added powerup sound
-	} else return;
-	
-	player.use(sprite("knight-jump")); 
-	player.play("jump");
-	player.jumpCD = 0.15;
-	}
-	
-	/* --- attack & fireball --- */
-	function doAttack(){
-	if (gamePaused || player.atkCD>0) return;
-	player.atkCD=0.6; 
-	playSfx("attack");
-	player.use(sprite("knight-attack")); 
-	player.play("attack");
-	wait(0.4,()=>{ 
-	player.use(sprite(player.isGrounded() ? "knight-idle" : "knight-jump")); 
-	player.play(player.isGrounded() ? "idle" : "jump"); 
-	});
-	}
-	
-	function shootFireball(){
-	if (gamePaused || fireballCD>0) return;
-	playSfx("attack");
-	fireballCD = FIREBALL_COOLDOWN;
-	
-	const fb = add([
-	sprite("fireball"),
-	pos(player.pos.add(30,10)),
-	area(),
-	move(RIGHT,400),
-	offscreen({destroy:true}),
-	scale(1.5),
-	"fireball",
-	]);
-	fb.play("spin");
-	}
-	
-	/* --- input bindings --- */
-	onKeyPress(["w","space"], tryJump);
-	onMousePress(tryJump);
-	onKeyPress("a", doAttack);
-	onKeyPress("f", shootFireball);
-	
-	/* --- enemy spawning --- */
+  setGravity(1400); // Increased gravity for better jump feel
+
+  /* --- reset audio --- */
+  // Only update music if it's not already playing or if it's disabled
+  if (!window.musicPlaying && window.audioSettings.musicEnabled) {
+    updateMusic();
+  }
+
+  /* --- constants --- */
+  const ENEMY_SPEED      = 250;
+  const FIREBALL_COOLDOWN = 3.0;
+
+  const PLAYER_X = 80;
+  const PLAYER_Y = height() - 96;
+
+  /* --- global flags --- */
+  window.gamePaused  = false;
+  window.score       = 0;
+
+  /* --- backdrop + floor --- */
+  add([sprite("background",{width:width(),height:height()}), pos(0,0)]);
+  add([rect(width(),48), pos(0,height()-48), area(), body({isStatic:true}), color(112,128,144)]);
+
+  /* --- player --- */
+  const player = add([
+  sprite("knight-idle"),
+  pos(PLAYER_X, PLAYER_Y),
+  scale(2),
+  area(),
+  body(),
+  "player",
+  { health:3, jumps:0, triple:0, jumpCD:0, atkCD:0 }
+  ]);
+  player.play("idle");
+
+  /* --- UI --- */
+  const scoreTx   = add([text("Score: 0",{font:"sink",size:40}), pos(10,10)]);
+  const tripleTx  = add([text("Triple Jumps: 0",{font:"sink",size:20}), pos(10,90)]);
+  const healthTx  = add([text("Health: 3",{font:"sink",size:20}), pos(10,130)]);
+
+  /* fireball CD bar */
+  add([rect(200,20), pos(10,170), color(90,90,90), outline(2)]);
+  const fbBar  = add([rect(200,20), pos(10,170), color(255,120,50)]);
+  const fbText = add([text("Fireball: Ready",{font:"sink",size:16}), pos(220,170)]);
+  let fireballCD = 0;
+
+  /* --- helpers --- */
+  const updTriple = () => tripleTx.text=`Triple Jumps: ${player.triple}`;
+  const updHealth = () => healthTx.text =`Health: ${player.health}`;
+
+  const toast = msg=> add([
+  text(msg,{font:"sink",size:24}),
+  pos(player.pos.x, player.pos.y-50),
+  color(255,255,0), origin("center"),
+  lifespan(1.5), move(UP,80)
+  ]);
+
+  /* --- jumping (increased heights) --- */
+  function tryJump(){
+  if (gamePaused || player.jumpCD>0) return;
+
+  if (player.isGrounded()){
+  player.jump(600); // Increased from 420
+  player.jumps=1; 
+  playSfx("jump");
+  } else if (player.jumps===1){
+  player.jump(500); // Increased from 340
+  player.jumps=2; 
+  playSfx("jump");
+  } else if (player.triple>0){
+  player.triple--; 
+  updTriple(); 
+  player.jump(700); // Increased from 500
+  playSfx("jump"); 
+  toast("Triple Jump!");
+  playSfx("powerup"); // Added powerup sound
+  } else return;
+
+  player.use(sprite("knight-jump")); 
+  player.play("jump");
+  player.jumpCD = 0.15;
+  }
+
+  /* --- attack & fireball --- */
+  function doAttack(){
+  if (gamePaused || player.atkCD>0) return;
+  player.atkCD=0.6; 
+  playSfx("attack");
+  player.use(sprite("knight-attack")); 
+  player.play("attack");
+  wait(0.4,()=>{ 
+  player.use(sprite(player.isGrounded() ? "knight-idle" : "knight-jump")); 
+  player.play(player.isGrounded() ? "idle" : "jump"); 
+  });
+  }
+
+  function shootFireball(){
+  if (gamePaused || fireballCD>0) return;
+  playSfx("attack");
+  fireballCD = FIREBALL_COOLDOWN;
+
+  const fb = add([
+  sprite("fireball"),
+  pos(player.pos.add(30,10)),
+  area(),
+  move(RIGHT,400),
+  offscreen({destroy:true}),
+  scale(1.5),
+  "fireball",
+  ]);
+  fb.play("spin");
+  }
+
+  /* --- input bindings --- */
+  onKeyPress(["w","space"], tryJump);
+  onMousePress(tryJump);
+  onKeyPress("a", doAttack);
+  onKeyPress("f", shootFireball);
+
+  /* --- enemy spawning --- */
     const spawnEnemy = () => {
         if (gamePaused) {
             wait(0.5, spawnEnemy);
@@ -140,7 +142,7 @@ scene("game", () => {
         if (enemyType === "ground") {
             // 50/50 chance between enemy-walk and enemy.png
             const enemyVariant = choose(["enemy-walk", "enemy"]);
-            
+
             const groundEnemy = add([
                 sprite(enemyVariant),
                 pos(width(), height() - 100),
@@ -186,79 +188,116 @@ scene("game", () => {
         wait(spawnDelay, spawnEnemy);
     };
     spawnEnemy();
-	
-	/* --- collisions --- */
-	onCollide("player","enemy",(p,e)=>{
-	destroy(e); 
-	playSfx("collide"); 
-	player.health--; 
-	updHealth();
-	if (player.health<=0){ 
-	destroy(player); 
-	addKaboom(p.pos); 
-	go("gameOver"); 
-	}
-	});
-	
-	onCollide("fireball","enemy",(f,e)=>{
-	destroy(f); 
-	e.use(sprite("enemy-death")); 
-	e.play("death"); 
-	e.unuse("enemy");
-	playSfx("enemy-death"); 
-	score+=100; 
-	wait(0.5,()=>destroy(e));
-	});
-	
-	/* --- update loop --- */
-	onUpdate(()=>{
-	if (gamePaused) return;
-	
-	/* score & triple power‑up */
-	score++; 
-	scoreTx.text=`Score: ${score}`;
-	if (score && score % 1000 === 0){
-	player.triple++; 
-	updTriple();
-	toast("+1 Triple Jump!");
-	playSfx("powerup");
-	}
-	
-	/* cooldown timers */
-	if (player.jumpCD>0) player.jumpCD-=dt();
-	if (player.atkCD >0) player.atkCD -=dt();
-	if (fireballCD >0) fireballCD -=dt();
-	
-	/* fireball bar */
-	const pct = clamp(1 - fireballCD / FIREBALL_COOLDOWN, 0, 1);
-	fbBar.width = 200 * pct;
-	fbText.text = pct >= 1 ? "Fireball: Ready" : `Fireball: ${(fireballCD).toFixed(1)}s`;
-	fbText.color = pct >= 1 ? rgb(40,255,40) : rgb(255,255,255);
-	
-	if (player.isGrounded()) player.jumps = 0;
-	});
-	
-	/* --- pause / resume --- */
-	function showPause(){
-	stop("music"); // Stop music completely
-	gamePaused=true;
-	add([rect(width(),height()),color(0,0,0,0.65),z(99),"pauseLayer"]);
-	add([text("PAUSED",{size:48,font:"sink"}),pos(width()/2,height()/4),origin("center"),z(100),"pauseElement"]);
-	createButton("Resume",vec2(width()/2,height()/2-80),resume,"pauseElement");
-	createButton("Menu",vec2(width()/2,height()/2+80),()=>{
-	stop("music"); // Additional stop before menu transition
-	go("mainMenu");
-	},"pauseElement");
-	}
-	
-	function resume(){
-	destroyAll("pauseLayer"); 
-	destroyAll("pauseElement");
-	gamePaused=false; 
-	updateMusic(); // Restart music with current settings
-	}
-	
-	onKeyPress("p",()=> gamePaused?resume():showPause());
-	add([text("II",{size:32,font:"sink"}),pos(width()-50,30),area(),origin("center")])
-	.onClick(()=> gamePaused?resume():showPause());
-	});
+
+  /* --- collisions --- */
+  onCollide("player","enemy",(p,e)=>{
+    destroy(e); 
+    playSfx("collide"); 
+    player.health--; 
+    updHealth();
+
+    // Add "-1 Life" notification
+    toast("-1 Life");
+
+    // Make player flash when taking damage
+    const flashCount = 5;
+    let flashes = 0;
+
+    const flashEffect = () => {
+      if (flashes >= flashCount || !player.exists()) return;
+
+      // Toggle visibility
+      player.opacity = player.opacity > 0 ? 0 : 1;
+      flashes++;
+
+      // Continue flashing
+      wait(0.1, flashEffect);
+    };
+
+    // Start flash effect
+    flashEffect();
+
+    // Reset opacity after flashing completes
+    wait(flashCount * 0.1 + 0.05, () => {
+      if (player.exists()) player.opacity = 1;
+    });
+
+    if (player.health<=0){ 
+      destroy(player); 
+      addKaboom(p.pos); 
+      go("gameOver"); 
+    }
+  });
+
+  onCollide("fireball","enemy",(f,e)=>{
+  destroy(f); 
+  e.use(sprite("enemy-death")); 
+  e.play("death"); 
+  e.unuse("enemy");
+  playSfx("enemy-death"); 
+  score+=100; 
+  wait(0.5,()=>destroy(e));
+  });
+
+  /* --- update loop --- */
+  onUpdate(()=>{
+  if (gamePaused) return;
+
+  /* score & triple power‑up */
+  score++; 
+  scoreTx.text=`Score: ${score}`;
+  if (score && score % 1000 === 0){
+  player.triple++; 
+  updTriple();
+  toast("+1 Triple Jump!");
+  playSfx("powerup");
+  }
+
+  /* cooldown timers */
+  if (player.jumpCD>0) player.jumpCD-=dt();
+  if (player.atkCD >0) player.atkCD -=dt();
+  if (fireballCD >0) fireballCD -=dt();
+
+  /* fireball bar */
+  const pct = clamp(1 - fireballCD / FIREBALL_COOLDOWN, 0, 1);
+  fbBar.width = 200 * pct;
+  fbText.text = pct >= 1 ? "Fireball: Ready" : `Fireball: ${(fireballCD).toFixed(1)}s`;
+  fbText.color = pct >= 1 ? rgb(40,255,40) : rgb(255,255,255);
+
+  if (player.isGrounded()) player.jumps = 0;
+  });
+
+  /* --- pause / resume --- */
+  function showPause(){
+    gamePaused = true;
+    // Don't stop music, just pause it
+    if (window.musicPlaying && window.audioSettings.musicEnabled) {
+      // In Kaboom, we can't pause directly, so we'll just remember the state
+      window.musicPaused = true;
+      stop("music");
+      window.musicPlaying = false;
+    }
+    add([rect(width(),height()),color(0,0,0,0.65),z(99),"pauseLayer"]);
+    add([text("PAUSED",{size:48,font:"sink"}),pos(width()/2,height()/4),origin("center"),z(100),"pauseElement"]);
+    createButton("Resume",vec2(width()/2,height()/2-80),resume,"pauseElement");
+    createButton("Menu",vec2(width()/2,height()/2+80),()=>{
+      // Don't stop music when going to menu
+      go("mainMenu");
+    },"pauseElement");
+  }
+
+  function resume(){
+    destroyAll("pauseLayer"); 
+    destroyAll("pauseElement");
+    gamePaused = false;
+    // Resume music if it was paused
+    if (window.musicPaused && window.audioSettings.musicEnabled) {
+      window.musicPaused = false;
+      updateMusic();
+    }
+  }
+
+  onKeyPress("p",()=> gamePaused?resume():showPause());
+  add([text("II",{size:32,font:"sink"}),pos(width()-50,30),area(),origin("center")])
+  .onClick(()=> gamePaused?resume():showPause());
+  });
