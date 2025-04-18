@@ -22,6 +22,7 @@ A 2D platformer game where you play as a knight jumping over enemies and using p
 - **A Key**: Sword attack
 - **F Key**: Shoot fireball (has cooldown)
 - **P Key**: Pause game
+- Play Here: https://fadedsushi.github.io/Jumpy-Knight/ 
 
 ### Objectives:
 - Jump over or attack enemies to avoid losing health
