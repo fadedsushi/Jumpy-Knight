@@ -28,13 +28,23 @@ window.audioSettings = {
   sfxEnabled:   true,
 };
 
+// Track if music is currently playing
+window.musicPlaying = false;
+
 window.updateMusic = () => {
-  stop("music"); // Critical fix: Stop existing music first
+  // First, stop any existing music
+  if (window.musicPlaying) {
+    stop("music");
+    window.musicPlaying = false;
+  }
+
+  // Only start music if it's enabled
   if (window.audioSettings.musicEnabled) {
     play("music", {
       loop: true,
       volume: window.audioSettings.musicVolume,
     });
+    window.musicPlaying = true;
   }
 };
 
